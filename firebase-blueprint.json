@@ -1,0 +1,104 @@
+{
+  "entities": {
+    "Item": {
+      "title": "Item",
+      "description": "Inventory item template",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "subCategory": { "type": "string" }
+      },
+      "required": ["name", "category"]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "description": "Stock purchase record",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string" },
+        "quantity": { "type": "number" },
+        "purchasePrice": { "type": "number" },
+        "saleRealPrice": { "type": "number" },
+        "discountPercentage": { "type": "number" },
+        "sellingPrice": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "color": { "type": "string" },
+        "size": { "type": "string" },
+        "vendorName": { "type": "string" }
+      },
+      "required": ["itemId", "quantity", "purchasePrice", "date", "color", "size"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Customer sale record",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string" },
+        "quantity": { "type": "number" },
+        "salePrice": { "type": "number" },
+        "date": { "type": "string", "format": "date-time" },
+        "color": { "type": "string" },
+        "size": { "type": "string" },
+        "customerName": { "type": "string" },
+        "discountType": { "type": "string", "enum": ["percentage", "rupees"] },
+        "discountValue": { "type": "number" }
+      },
+      "required": ["itemId", "quantity", "salePrice", "date", "color", "size"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Customer invoice",
+      "type": "object",
+      "properties": {
+        "invoiceNumber": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Paid", "Pending"] },
+        "customer": { "type": "object" },
+        "items": { "type": "array" },
+        "subtotal": { "type": "number" },
+        "discountType": { "type": "string", "enum": ["rupees", "percentage"] },
+        "discountValue": { "type": "number" },
+        "discountAmount": { "type": "number" },
+        "total": { "type": "number" },
+        "notes": { "type": "string" }
+      },
+      "required": ["invoiceNumber", "date", "status", "customer", "items", "subtotal", "total"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Store settings",
+      "type": "object",
+      "properties": {
+        "mobileNumber": { "type": "string" },
+        "invoicePrefix": { "type": "string" },
+        "invoiceNextNumber": { "type": "number" },
+        "defaultGreeting": { "type": "string" },
+        "paymentQrCode": { "type": "string" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}/items/{itemId}": {
+      "schema": "Item",
+      "description": "List of inventory item templates for a user"
+    },
+    "/users/{userId}/purchases/{purchaseId}": {
+      "schema": "Purchase",
+      "description": "Inventory purchase transactions for a user"
+    },
+    "/users/{userId}/sales/{saleId}": {
+      "schema": "Sale",
+      "description": "Sales transactions for a user"
+    },
+    "/users/{userId}/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Generated invoices for a user"
+    },
+    "/users/{userId}/settings/config": {
+      "schema": "Settings",
+      "description": "User specific settings"
+    }
+  }
+}

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Shop root document & subcollections (items, purchases, sales, invoices, settings, branches)
+    match /shops/{shopId} {
+      allow read, write: if true;
+
+      match /items/{itemId} {
+        allow read, write: if true;
+      }
+      match /purchases/{purchaseId} {
+        allow read, write: if true;
+      }
+      match /sales/{saleId} {
+        allow read, write: if true;
+      }
+      match /invoices/{invoiceId} {
+        allow read, write: if true;
+      }
+      match /settings/{settingId} {
+        allow read, write: if true;
+      }
+      match /branches/{branchId} {
+        allow read, write: if true;
+
+        match /items/{itemId} {
+          allow read, write: if true;
+        }
+        match /purchases/{purchaseId} {
+          allow read, write: if true;
+        }
+        match /sales/{saleId} {
+          allow read, write: if true;
+        }
+        match /invoices/{invoiceId} {
+          allow read, write: if true;
+        }
+        match /settings/{settingId} {
+          allow read, write: if true;
+        }
+      }
+    }
+
+    // Default fallback
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}
