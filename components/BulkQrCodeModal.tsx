@@ -76,7 +76,7 @@ const QrCodeLabel: React.FC<LabelProps> = React.memo(({ item, businessLogo, sett
                 color: item.color,
                 size: item.size,
             });
-            QRCode.toDataURL(qrData, { width: 300, margin: 1 }, (err, url) => {
+            QRCode.toDataURL(qrData, { width: 1000, margin: 1 }, (err, url) => {
                 if (err) console.error('QR Code generation failed:', err);
                 else setQrCodeUrl(url);
             });
@@ -325,7 +325,7 @@ const BulkQrCodeModal: React.FC<BulkQrCodeModalProps> = ({ isOpen, onClose, item
                     logging: false,
                 });
 
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const imgData = canvas.toDataURL('image/png');
                 const indexOnPage = i % labelsPerPage;
 
                 // Add a new A4 page if current page is full
@@ -338,7 +338,7 @@ const BulkQrCodeModal: React.FC<BulkQrCodeModalProps> = ({ isOpen, onClose, item
                 const x = offsetX + col * (labelWidth + gap);
                 const y = offsetY + row * (labelHeight + gap);
 
-                pdf.addImage(imgData, 'JPEG', x, y, labelWidth, labelHeight);
+                pdf.addImage(imgData, 'PNG', x, y, labelWidth, labelHeight);
             }
 
             const today = new Date().toISOString().slice(0, 10);

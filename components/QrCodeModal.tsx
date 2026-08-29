@@ -99,7 +99,7 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                     color: itemData.color,
                     size: itemData.size,
                 });
-                QRCode.toDataURL(qrData, { width: 400, margin: 1 }, (err, url) => {
+                QRCode.toDataURL(qrData, { width: 1000, margin: 1 }, (err, url) => {
                     if (err) console.error('QR Code generation failed:', err);
                     else setQrCodeUrl(url);
                 });
@@ -141,7 +141,7 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                 logging: false
             });
 
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const imgData = canvas.toDataURL('image/png');
             const pdf = new jsPDF({
                 orientation: labelWidth > labelHeight ? 'landscape' : 'portrait',
                 unit: 'mm',
@@ -149,7 +149,7 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                 compress: true
             });
 
-            pdf.addImage(imgData, 'JPEG', 0, 0, labelWidth, labelHeight);
+            pdf.addImage(imgData, 'PNG', 0, 0, labelWidth, labelHeight);
             pdf.save(`MK_Tag_${itemData.variantId || itemData.name}.pdf`);
         } catch (e) {
             console.error('Error generating tag PDF:', e);
