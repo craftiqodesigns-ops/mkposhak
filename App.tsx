@@ -42,8 +42,25 @@ function withTimeout<T>(promise: Promise<T>, timeoutMs = 6000): Promise<T> {
     ]);
 }
 
-// Initialize the Gemini AI Client
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Initialize the Gemini AI Client lazily so a missing/misconfigured API key
+// only affects the AI logo background-removal feature, instead of crashing the
+// entire app on load (which would show a blank white screen with no visible error).
+let aiClient: GoogleGenAI | null = null;
+const getAiClient = (): GoogleGenAI | null => {
+    if (aiClient) return aiClient;
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+        console.warn('GEMINI_API_KEY is not set - AI logo background removal will be unavailable.');
+        return null;
+    }
+    try {
+        aiClient = new GoogleGenAI({ apiKey });
+        return aiClient;
+    } catch (err) {
+        console.warn('Failed to initialize GoogleGenAI client:', err);
+        return null;
+    }
+};
 
 // --- Initial Mock Data for new users ---
 const initialItems: Omit<Item, 'id'>[] = [
@@ -1296,6 +1313,13 @@ const App: React.FC = () => {
         originalLogoReader.onloadend = async () => {
             const originalBase64Url = originalLogoReader.result as string;
             try {
+                const client = getAiClient();
+                if (!client) {
+                    alert("AI background removal isn't configured (missing API key). Using the original image.");
+                    handleSetLogo(originalBase64Url);
+                    return;
+                }
+
                 const base64Data = originalBase64Url.split(',')[1];
                 
                 const imagePart = {
@@ -1303,7 +1327,7 @@ const App: React.FC = () => {
                 };
                 const textPart = { text: "Remove the background from this image. Make the background transparent. The output must be a PNG with a transparent background." };
     
-                const response = await ai.models.generateContent({
+                const response = await client.models.generateContent({
                     model: 'gemini-2.5-flash-image',
                     contents: { parts: [imagePart, textPart] },
                     config: {
