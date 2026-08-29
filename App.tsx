@@ -179,15 +179,14 @@ const App: React.FC = () => {
     } | null>(null);
 
     useEffect(() => {
-        if (isPinAuthenticated) {
-            setUser({ uid: 'pin_user', email: 'owner@mkposhak.local' } as User);
-            setIsOffline(false);
-            setLoading(false);
-        } else {
-            setUser(null);
-            setLoading(false);
-        }
-    }, [isPinAuthenticated]);
+        // Connect to Firestore as soon as the app loads - NOT after the PIN is entered.
+        // Firestore rules for this app allow open read/write, so there's no auth needed;
+        // connecting early just means settings (and the security PIN itself) are already
+        // synced by the time the person sees the PIN screen, so an updated PIN works on
+        // every device right away instead of only the device it was changed on.
+        setUser({ uid: 'pin_user', email: 'owner@mkposhak.local' } as User);
+        setLoading(false);
+    }, []);
 
     // Helper to get offline storage key per branch
     const offlineStorageKey = `clothing_shop_offline_data_${activeBranchId}`;
@@ -1428,16 +1427,13 @@ const App: React.FC = () => {
         );
     }
 
-    if (!isPinAuthenticated || !user) {
+    if (!isPinAuthenticated) {
         return (
             <Auth
                 currentPin={settings.securityPin}
                 onLoginSuccess={() => {
                     sessionStorage.setItem('is_pin_authenticated', 'true');
                     setIsPinAuthenticated(true);
-                    setUser({ uid: 'pin_user', email: 'owner@mkposhak.local' } as User);
-                    setIsOffline(false);
-                    setLoading(false);
                 }}
             />
         );

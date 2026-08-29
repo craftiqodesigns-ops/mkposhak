@@ -44,14 +44,51 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
         setLocalSettings(prev => ({ ...prev, [name]: isNumeric ? Number(value) : value }));
     };
 
+    // Resize/compress an uploaded image before storing it as base64. Raw phone-camera
+    // photos can be several MB, which can make saving slow or (in extreme cases) exceed
+    // Firestore's 1MB-per-document limit, causing the save to silently fail/hang.
+    const compressImageFile = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const img = new Image();
+                img.onload = () => {
+                    const MAX_DIMENSION = 500;
+                    let { width, height } = img;
+                    if (width > height && width > MAX_DIMENSION) {
+                        height = Math.round((height * MAX_DIMENSION) / width);
+                        width = MAX_DIMENSION;
+                    } else if (height > MAX_DIMENSION) {
+                        width = Math.round((width * MAX_DIMENSION) / height);
+                        height = MAX_DIMENSION;
+                    }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(reader.result as string); // Fallback: use original
+                        return;
+                    }
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+                    resolve(canvas.toDataURL('image/jpeg', 0.8));
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = reader.result as string;
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    };
+
     const handleQrCodeFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setLocalSettings(prev => ({ ...prev, paymentQrCode: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
+            compressImageFile(file)
+                .then(dataUrl => setLocalSettings(prev => ({ ...prev, paymentQrCode: dataUrl })))
+                .catch(err => console.error('QR image compression failed:', err));
         }
     };
     
@@ -65,11 +102,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const handleInstagramQrFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setLocalSettings(prev => ({ ...prev, instagramQrCode: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
+            compressImageFile(file)
+                .then(dataUrl => setLocalSettings(prev => ({ ...prev, instagramQrCode: dataUrl })))
+                .catch(err => console.error('QR image compression failed:', err));
         }
     };
 
@@ -83,11 +118,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const handleGoogleReviewQrFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setLocalSettings(prev => ({ ...prev, googleReviewQrCode: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
+            compressImageFile(file)
+                .then(dataUrl => setLocalSettings(prev => ({ ...prev, googleReviewQrCode: dataUrl })))
+                .catch(err => console.error('QR image compression failed:', err));
         }
     };
 
@@ -101,11 +134,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, settings
     const handleCatalogQrFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setLocalSettings(prev => ({ ...prev, catalogQrCode: reader.result as string }));
-            };
-            reader.readAsDataURL(file);
+            compressImageFile(file)
+                .then(dataUrl => setLocalSettings(prev => ({ ...prev, catalogQrCode: dataUrl })))
+                .catch(err => console.error('QR image compression failed:', err));
         }
     };
 

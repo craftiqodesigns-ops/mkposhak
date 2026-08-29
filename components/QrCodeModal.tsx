@@ -307,7 +307,7 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                             style={{ 
                                 width: `${labelWidth}mm`, 
                                 height: `${labelHeight}mm`,
-                                border: '1px dashed #ccc',
+                                border: 'none',
                                 backgroundColor: 'white',
                                 color: 'black',
                                 display: 'flex',

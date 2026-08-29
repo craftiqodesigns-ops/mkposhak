@@ -107,7 +107,7 @@ const QrCodeLabel: React.FC<LabelProps> = React.memo(({ item, businessLogo, sett
             style={{
                 width: `${settings.width}mm`,
                 height: `${settings.height}mm`,
-                border: '1px dashed #ccc',
+                border: 'none',
                 padding: '2mm',
                 display: 'flex',
                 flexDirection: 'column',
@@ -413,7 +413,7 @@ const BulkQrCodeModal: React.FC<BulkQrCodeModalProps> = ({ isOpen, onClose, item
                   }
                   
                   .qr-label-container {
-                    border: 1px dashed #ccc !important;
+                    border: none !important;
                     break-inside: avoid;
                     page-break-inside: avoid;
                     background-color: white !important;
