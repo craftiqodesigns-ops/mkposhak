@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import type { DashboardData } from '../types';
 import { XIcon } from './icons/XIcon';
+import { DownloadIcon } from './icons/DownloadIcon';
 
 interface QrCodeModalProps {
     isOpen: boolean;
@@ -50,6 +53,7 @@ const NumberInput = ({ label, value, onChange, min = 0, step = 1 }: { label: str
 
 const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, businessLogo }) => {
     const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
     const barcodeRef = useRef<SVGSVGElement>(null);
     
     // Load settings from localStorage or default
@@ -121,6 +125,38 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownloadPdf = async () => {
+        if (!itemData) return;
+        const input = document.getElementById('printable-qr-area');
+        if (!input) return;
+
+        setIsGeneratingPdf(true);
+        try {
+            const canvas = await html2canvas(input, {
+                scale: 3,
+                useCORS: true,
+                backgroundColor: '#ffffff',
+                logging: false
+            });
+
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const pdf = new jsPDF({
+                orientation: labelWidth > labelHeight ? 'landscape' : 'portrait',
+                unit: 'mm',
+                format: [labelWidth, labelHeight],
+                compress: true
+            });
+
+            pdf.addImage(imgData, 'JPEG', 0, 0, labelWidth, labelHeight);
+            pdf.save(`MK_Tag_${itemData.variantId || itemData.name}.pdf`);
+        } catch (e) {
+            console.error('Error generating tag PDF:', e);
+            alert('Failed to generate PDF. Please try again.');
+        } finally {
+            setIsGeneratingPdf(false);
+        }
     };
     
     const handleSwapDimensions = () => {
@@ -225,19 +261,41 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                              <NumberInput label="Logo Size (px)" value={logoSize} onChange={v => updateSetting('logoSize', v)} />
                         </div>
 
-                        <div className="pt-4 flex justify-end gap-2">
-                             <button
-                                onClick={onClose}
-                                className="px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
-                            >
-                                Close
-                            </button>
+                        <div className="pt-4 flex flex-col gap-2">
                             <button
-                                onClick={handlePrint}
-                                className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+                                onClick={handleDownloadPdf}
+                                disabled={isGeneratingPdf}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all cursor-pointer disabled:cursor-not-allowed text-sm"
                             >
-                                Print
+                                {isGeneratingPdf ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4 text-white mr-1" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                        </svg>
+                                        Generating PDF...
+                                    </>
+                                ) : (
+                                    <>
+                                        <DownloadIcon className="w-4 h-4" />
+                                        Download PDF
+                                    </>
+                                )}
                             </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={onClose}
+                                    className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors text-sm"
+                                >
+                                    Close
+                                </button>
+                                <button
+                                    onClick={handlePrint}
+                                    className="flex-1 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors text-sm"
+                                >
+                                    Print
+                                </button>
+                            </div>
                         </div>
                     </div>
 
@@ -258,17 +316,19 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                                 alignItems: 'center',
                                 padding: '2mm',
                                 boxSizing: 'border-box',
-                                overflow: 'hidden'
+                                overflow: 'hidden',
+                                position: 'relative'
                             }}
                         >
-                            {/* Header Section: Logo & Item Name */}
-                            <div className="w-full flex flex-col items-center text-center">
+                            {/* Header Section: Logo & Item Name (flex-shrink-0) */}
+                            <div className="w-full flex-shrink-0 flex flex-col items-center text-center">
                                 {businessLogo && (
                                     <img 
                                         src={businessLogo} 
                                         alt="Logo" 
                                         style={{ 
                                             height: `${logoSize}px`, 
+                                            maxHeight: '28px',
                                             maxWidth: '100%',
                                             objectFit: 'contain', 
                                             marginBottom: '1px' 
@@ -279,18 +339,19 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                                     style={{ 
                                         fontSize: `${fontSize}px`, 
                                         fontWeight: 'bold', 
-                                        lineHeight: 1.1, 
+                                        lineHeight: 1.15, 
                                         margin: 0, 
                                         wordBreak: 'break-word',
-                                        width: '100%' 
+                                        width: '100%',
+                                        color: 'black'
                                     }}
                                 >
                                     {itemData.name}
                                 </h3>
                             </div>
                             
-                            {/* Code Section: QR or Barcode */}
-                            <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', overflow: 'hidden', padding: '1mm 0' }}>
+                            {/* Code Section: QR or Barcode (auto scales in remaining space) */}
+                            <div style={{ flex: '1 1 0%', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', overflow: 'hidden', margin: '1px 0' }}>
                                 {format === 'qr' ? (
                                     qrCodeUrl ? (
                                         <img 
@@ -301,11 +362,12 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                                                 height: `${codeSize}mm`, 
                                                 maxWidth: '100%', 
                                                 maxHeight: '100%', 
-                                                objectFit: 'contain' 
+                                                objectFit: 'contain',
+                                                display: 'block'
                                             }} 
                                         />
                                     ) : (
-                                        <div style={{ width: `${codeSize}mm`, height: `${codeSize}mm`, background: '#eee' }}></div>
+                                        <div style={{ width: `${codeSize}mm`, height: `${codeSize}mm`, maxWidth: '100%', maxHeight: '100%', background: '#eee' }}></div>
                                     )
                                 ) : (
                                     <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
@@ -314,31 +376,33 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                                             style={{ 
                                                 width: '100%', 
                                                 height: `${codeSize}mm`, 
-                                                maxWidth: '100%',
-                                                objectFit: 'contain'
+                                                maxWidth: '100%', 
+                                                maxHeight: '100%',
+                                                objectFit: 'contain',
+                                                display: 'block'
                                             }}
                                         ></svg>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Footer Section: Details & Price */}
-                            <div className="w-full text-center">
-                                <p style={{ fontSize: `${Math.max(8, fontSize - 2)}px`, margin: 0, color: '#000', lineHeight: 1.2 }}>
+                            {/* Footer Section: Details & Price (flex-shrink-0) */}
+                            <div className="w-full flex-shrink-0 text-center">
+                                <p style={{ fontSize: `${Math.max(8, fontSize - 2)}px`, margin: 0, color: '#000', lineHeight: 1.15 }}>
                                     {itemData.color} / {itemData.size}
                                 </p>
                                 <div style={{ lineHeight: 1, marginTop: '2px' }}>
                                     {hasDiscount ? (
-                                        <>
-                                            <span style={{ fontSize: `${Math.max(8, fontSize - 2)}px`, textDecoration: 'line-through', color: '#555', marginRight: '4px' }}>
+                                        <div className="flex items-center justify-center gap-1">
+                                            <span style={{ fontSize: `${Math.max(8, fontSize - 2)}px`, textDecoration: 'line-through', color: '#555' }}>
                                                 {formatCurrency(itemData.saleRealPrice ?? 0)}
                                             </span>
-                                            <span style={{ fontSize: `${fontSize + 2}px`, fontWeight: 'bold' }}>
+                                            <span style={{ fontSize: `${fontSize + 2}px`, fontWeight: 'bold', color: 'black' }}>
                                                 {formatCurrency(itemData.sellingPrice ?? 0)}
                                             </span>
-                                        </>
+                                        </div>
                                     ) : (
-                                        <span style={{ fontSize: `${fontSize + 2}px`, fontWeight: 'bold' }}>
+                                        <span style={{ fontSize: `${fontSize + 2}px`, fontWeight: 'bold', color: 'black' }}>
                                             {formatCurrency(itemData.sellingPrice ?? itemData.avgSalePrice ?? 0)}
                                         </span>
                                     )}

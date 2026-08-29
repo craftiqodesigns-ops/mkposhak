@@ -1,8 +1,11 @@
 import React, { useEffect, useState, useRef } from 'react';
 import QRCode from 'qrcode';
 import JsBarcode from 'jsbarcode';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import type { DashboardData } from '../types';
 import { XIcon } from './icons/XIcon';
+import { DownloadIcon } from './icons/DownloadIcon';
 
 interface BulkQrCodeModalProps {
     isOpen: boolean;
@@ -73,7 +76,7 @@ const QrCodeLabel: React.FC<LabelProps> = React.memo(({ item, businessLogo, sett
                 color: item.color,
                 size: item.size,
             });
-            QRCode.toDataURL(qrData, { width: 200, margin: 1 }, (err, url) => {
+            QRCode.toDataURL(qrData, { width: 300, margin: 1 }, (err, url) => {
                 if (err) console.error('QR Code generation failed:', err);
                 else setQrCodeUrl(url);
             });
@@ -113,38 +116,103 @@ const QrCodeLabel: React.FC<LabelProps> = React.memo(({ item, businessLogo, sett
                 boxSizing: 'border-box',
                 overflow: 'hidden',
                 pageBreakInside: 'avoid',
-                color: 'black' // Force black text for print
+                color: 'black', // Force black text for print
+                position: 'relative'
             }}
         >
-            <div className="flex flex-col items-center w-full" style={{ maxHeight: '20%' }}>
-                {businessLogo && <img src={businessLogo} alt="Logo" style={{ height: `${settings.logoSize}px`, objectFit: 'contain', marginBottom: '1px' }} />}
-                <h4 style={{ fontSize: `${settings.fontSize}px`, fontWeight: 'bold', lineHeight: 1.1, textAlign: 'center', margin: 0, width: '100%', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'black' }}>{item.name}</h4>
+            {/* Header: Logo and Item Name (flex-shrink-0 to prevent clipping/overlap) */}
+            <div className="flex flex-col items-center w-full flex-shrink-0 text-center">
+                {businessLogo && (
+                    <img 
+                        src={businessLogo} 
+                        alt="Logo" 
+                        style={{ 
+                            height: `${settings.logoSize}px`, 
+                            maxHeight: '26px',
+                            maxWidth: '100%',
+                            objectFit: 'contain', 
+                            marginBottom: '1px' 
+                        }} 
+                    />
+                )}
+                <h4 
+                    style={{ 
+                        fontSize: `${settings.fontSize}px`, 
+                        fontWeight: 'bold', 
+                        lineHeight: 1.15, 
+                        textAlign: 'center', 
+                        margin: 0, 
+                        width: '100%', 
+                        whiteSpace: 'normal',
+                        wordBreak: 'break-word',
+                        overflow: 'hidden', 
+                        color: 'black' 
+                    }}
+                >
+                    {item.name}
+                </h4>
             </div>
             
-            <div className="flex-grow flex items-center justify-center w-full" style={{ margin: '1mm 0' }}>
+            {/* Middle: QR Code / Barcode (dynamically scales to remaining space) */}
+            <div 
+                style={{ 
+                    flex: '1 1 0%', 
+                    minHeight: 0, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    width: '100%', 
+                    overflow: 'hidden', 
+                    margin: '1px 0' 
+                }}
+            >
                 {settings.format === 'qr' ? (
                     qrCodeUrl ? (
-                        <img src={qrCodeUrl} alt="QR" style={{ width: `${settings.codeSize}mm`, height: `${settings.codeSize}mm`, objectFit: 'contain' }} />
+                        <img 
+                            src={qrCodeUrl} 
+                            alt="QR" 
+                            style={{ 
+                                width: `${settings.codeSize}mm`, 
+                                height: `${settings.codeSize}mm`, 
+                                maxWidth: '100%', 
+                                maxHeight: '100%', 
+                                objectFit: 'contain',
+                                display: 'block'
+                            }} 
+                        />
                     ) : (
-                        <div style={{ width: `${settings.codeSize}mm`, height: `${settings.codeSize}mm`, background: '#eee' }}></div>
+                        <div style={{ width: `${settings.codeSize}mm`, height: `${settings.codeSize}mm`, maxWidth: '100%', maxHeight: '100%', background: '#eee' }}></div>
                     )
                 ) : (
-                     <svg ref={barcodeRef} style={{ width: '100%', height: `${settings.codeSize}mm`, maxWidth: '100%' }}></svg>
+                     <svg 
+                        ref={barcodeRef} 
+                        style={{ 
+                            width: '100%', 
+                            height: `${settings.codeSize}mm`, 
+                            maxWidth: '100%', 
+                            maxHeight: '100%', 
+                            objectFit: 'contain',
+                            display: 'block'
+                        }}
+                    ></svg>
                 )}
             </div>
 
-            <div className="text-center w-full" style={{ maxHeight: '25%' }}>
-                <p style={{ fontSize: `${Math.max(8, settings.fontSize - 3)}px`, color: 'black', margin: 0 }}>{item.color} / {item.size}</p>
-                <div style={{ lineHeight: 1 }}>
+            {/* Footer: Color / Size & Price (flex-shrink-0) */}
+            <div className="text-center w-full flex-shrink-0">
+                <p style={{ fontSize: `${Math.max(8, settings.fontSize - 3)}px`, color: 'black', margin: 0, lineHeight: 1.15 }}>
+                    {item.color} / {item.size}
+                </p>
+                <div style={{ lineHeight: 1, marginTop: '1px' }}>
                      {hasDiscount ? (
-                        <>
-                            <span style={{ fontSize: `${Math.max(8, settings.fontSize - 3)}px`, textDecoration: 'line-through', color: '#555', marginRight: '2px' }}>
+                        <div className="flex items-center justify-center gap-1">
+                            <span style={{ fontSize: `${Math.max(8, settings.fontSize - 3)}px`, textDecoration: 'line-through', color: '#555' }}>
                                 {formatCurrency(item.saleRealPrice ?? 0)}
                             </span>
                             <span style={{ fontSize: `${settings.fontSize + 1}px`, fontWeight: 'bold', color: 'black' }}>
                                 {formatCurrency(item.sellingPrice ?? 0)}
                             </span>
-                        </>
+                        </div>
                     ) : (
                         <p style={{ fontSize: `${settings.fontSize + 1}px`, fontWeight: 'bold', margin: 0, color: 'black' }}>
                             {formatCurrency(item.sellingPrice ?? item.avgSalePrice ?? 0)}
@@ -157,6 +225,8 @@ const QrCodeLabel: React.FC<LabelProps> = React.memo(({ item, businessLogo, sett
 });
 
 const BulkQrCodeModal: React.FC<BulkQrCodeModalProps> = ({ isOpen, onClose, itemsData, businessLogo }) => {
+    const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+    const [pdfProgress, setPdfProgress] = useState<{ current: number; total: number } | null>(null);
     
     // Load settings from localStorage or default
     const getInitialSettings = () => {
@@ -195,6 +265,84 @@ const BulkQrCodeModal: React.FC<BulkQrCodeModalProps> = ({ isOpen, onClose, item
 
     const handlePrint = () => {
         window.print();
+    };
+
+    const handleDownloadPdf = async () => {
+        if (!itemsData || itemsData.length === 0) return;
+        
+        const gridEl = document.querySelector('.printable-qr-grid') as HTMLElement;
+        if (!gridEl) return;
+        
+        const labelEls = Array.from(gridEl.querySelectorAll('.qr-label-container')) as HTMLElement[];
+        if (labelEls.length === 0) return;
+
+        setIsGeneratingPdf(true);
+        setPdfProgress({ current: 0, total: labelEls.length });
+
+        try {
+            // Standard A4 page dimensions in mm
+            const pageWidth = 210;
+            const pageHeight = 297;
+            const margin = 8; // 8mm margin around A4 page
+            
+            const usableWidth = pageWidth - (2 * margin);
+            const usableHeight = pageHeight - (2 * margin);
+            
+            // Calculate grid columns and rows per A4 page
+            const colCount = Math.max(1, Math.floor((usableWidth + gap) / (labelWidth + gap)));
+            const rowCount = Math.max(1, Math.floor((usableHeight + gap) / (labelHeight + gap)));
+            const labelsPerPage = colCount * rowCount;
+            
+            // Calculate centered offsets on the A4 page
+            const totalGridWidth = colCount * labelWidth + (colCount - 1) * gap;
+            const totalGridHeight = rowCount * labelHeight + (rowCount - 1) * gap;
+            const offsetX = Math.max(margin, (pageWidth - totalGridWidth) / 2);
+            const offsetY = Math.max(margin, (pageHeight - totalGridHeight) / 2);
+
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4',
+                compress: true,
+            });
+
+            for (let i = 0; i < labelEls.length; i++) {
+                const labelEl = labelEls[i];
+                setPdfProgress({ current: i + 1, total: labelEls.length });
+
+                // Render each label with html2canvas at 3x scale for crisp QR/barcode scanning
+                const canvas = await html2canvas(labelEl, {
+                    scale: 3,
+                    useCORS: true,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                });
+
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const indexOnPage = i % labelsPerPage;
+
+                // Add a new A4 page if current page is full
+                if (i > 0 && indexOnPage === 0) {
+                    pdf.addPage('a4', 'portrait');
+                }
+
+                const col = indexOnPage % colCount;
+                const row = Math.floor(indexOnPage / colCount);
+                const x = offsetX + col * (labelWidth + gap);
+                const y = offsetY + row * (labelHeight + gap);
+
+                pdf.addImage(imgData, 'JPEG', x, y, labelWidth, labelHeight);
+            }
+
+            const today = new Date().toISOString().slice(0, 10);
+            pdf.save(`MK_Bulk_Tags_${today}.pdf`);
+        } catch (error) {
+            console.error('Error generating bulk PDF:', error);
+            alert('Failed to generate PDF. Please try again or use the Print button.');
+        } finally {
+            setIsGeneratingPdf(false);
+            setPdfProgress(null);
+        }
     };
     
     const handleSwapDimensions = () => {
@@ -333,14 +481,36 @@ const BulkQrCodeModal: React.FC<BulkQrCodeModalProps> = ({ isOpen, onClose, item
 
                         <div className="pt-4 flex flex-col gap-2">
                             <button
+                                onClick={handleDownloadPdf}
+                                disabled={isGeneratingPdf}
+                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-semibold rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 transition-all cursor-pointer disabled:cursor-not-allowed"
+                            >
+                                {isGeneratingPdf ? (
+                                    <>
+                                        <svg className="animate-spin h-4 w-4 text-white mr-1" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                        </svg>
+                                        Generating PDF {pdfProgress ? `(${pdfProgress.current}/${pdfProgress.total})` : '...'}
+                                    </>
+                                ) : (
+                                    <>
+                                        <DownloadIcon className="w-4 h-4" />
+                                        Download PDF (A4 Sheet)
+                                    </>
+                                )}
+                            </button>
+                            <button
                                 onClick={handlePrint}
-                                className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+                                disabled={isGeneratingPdf}
+                                className="w-full px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors disabled:opacity-50"
                             >
                                 Print Labels ({itemsData.length})
                             </button>
-                             <button
+                            <button
                                 onClick={onClose}
-                                className="w-full px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                                disabled={isGeneratingPdf}
+                                className="w-full px-4 py-2 bg-slate-200 dark:bg-slate-600 text-slate-800 dark:text-slate-200 font-semibold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors disabled:opacity-50"
                             >
                                 Close
                             </button>
