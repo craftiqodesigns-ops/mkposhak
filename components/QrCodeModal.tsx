@@ -321,7 +321,7 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                             }}
                         >
                             {/* Header Section: Logo & Item Name (flex-shrink-0) */}
-                            <div className="w-full flex-shrink-0 flex flex-col items-center text-center">
+                            <div className="w-full flex-shrink-0 flex flex-col items-center text-center" style={{ paddingTop: '0.5mm' }}>
                                 {businessLogo && (
                                     <img 
                                         src={businessLogo} 
@@ -339,7 +339,14 @@ const QrCodeModal: React.FC<QrCodeModalProps> = ({ isOpen, onClose, itemData, bu
                                     style={{ 
                                         fontSize: `${fontSize}px`, 
                                         fontWeight: 'bold', 
-                                        lineHeight: 1.15, 
+                                        lineHeight: 1.2, 
+                                        // Fixed height = exactly 2 lines, so long names get a
+                                        // guaranteed box instead of overflowing and clipping.
+                                        height: '2.4em',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        overflow: 'hidden',
                                         margin: 0, 
                                         wordBreak: 'break-word',
                                         width: '100%',

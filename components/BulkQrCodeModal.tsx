@@ -121,7 +121,7 @@ const QrCodeLabel: React.FC<LabelProps> = React.memo(({ item, businessLogo, sett
             }}
         >
             {/* Header: Logo and Item Name (flex-shrink-0 to prevent clipping/overlap) */}
-            <div className="flex flex-col items-center w-full flex-shrink-0 text-center">
+            <div className="flex flex-col items-center w-full flex-shrink-0 text-center" style={{ paddingTop: '0.5mm' }}>
                 {businessLogo && (
                     <img 
                         src={businessLogo} 
@@ -139,7 +139,14 @@ const QrCodeLabel: React.FC<LabelProps> = React.memo(({ item, businessLogo, sett
                     style={{ 
                         fontSize: `${settings.fontSize}px`, 
                         fontWeight: 'bold', 
-                        lineHeight: 1.15, 
+                        lineHeight: 1.2, 
+                        // Fixed height = exactly 2 lines. This gives the flex layout a
+                        // predictable, guaranteed-sufficient box for the text, so long
+                        // names never overflow and get clipped at the top of the label.
+                        height: '2.4em',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
                         textAlign: 'center', 
                         margin: 0, 
                         width: '100%', 
@@ -163,7 +170,7 @@ const QrCodeLabel: React.FC<LabelProps> = React.memo(({ item, businessLogo, sett
                     justifyContent: 'center', 
                     width: '100%', 
                     overflow: 'hidden', 
-                    margin: '1px 0' 
+                    margin: '1px 0 3px' 
                 }}
             >
                 {settings.format === 'qr' ? (
